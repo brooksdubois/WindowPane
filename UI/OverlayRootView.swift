@@ -1,27 +1,30 @@
 import SwiftUI
 
 struct OverlayRootView: View {
+    let cornerRadius: CGFloat
+
     var body: some View {
         ZStack {
-            WindowPaneBackground()
+            WindowPaneBackground(cornerRadius: cornerRadius)
 
             PlaceholderCameraContent()
         }
-        .frame(minWidth: 260, minHeight: 160)
         .background(Color.clear)
     }
 }
 
 private struct WindowPaneBackground: View {
+    let cornerRadius: CGFloat
+
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(Color.black.opacity(0.86))
 
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .stroke(Color.white.opacity(0.16), lineWidth: 1)
 
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .stroke(Color.black.opacity(0.35), lineWidth: 2)
                 .blur(radius: 0.5)
                 .offset(y: 1)
