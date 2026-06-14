@@ -53,9 +53,10 @@ This is an XCode project. Install XCode, then you can simply clone the repo and 
   - Then build: Product → Build (or: Cmd + B)
 
 4. Find the built app
-  - In Xcode’s left sidebar, scroll to: Products
-  - You should see: WindowPane.app
-  - Right-click it: Show in Finder
+  - Product → Show Build Folder in Finder
+  - Navigate in Finder to Product -> Build -> Release
+  - You should see "WindowPane.app"
+  - Copy this to Applications
 
 5. Copy it to Applications
   - In Finder, copy: WindowPane.app to: /Applications
