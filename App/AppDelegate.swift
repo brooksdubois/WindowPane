@@ -25,7 +25,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.showWindow(nil)
         controller.window?.makeKeyAndOrderFront(nil)
         controller.window?.orderFrontRegardless()
-        
     }
 
     private func setupStatusItem() {
