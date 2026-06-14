@@ -3,6 +3,8 @@ import AppKit
 final class OverlayWindow: NSWindow {
     var onToggleOverlayFullscreen: (() -> Void)?
     var onExitOverlayFullscreen: (() -> Bool)?
+    var onOpenSettings: (() -> Void)?
+    var fullscreenShortcut: FullscreenKeyboardShortcut = .optionShiftF
 
     override var canBecomeKey: Bool {
         true
@@ -30,17 +32,26 @@ final class OverlayWindow: NSWindow {
     }
 
     private func handlesKeyDown(_ event: NSEvent) -> Bool {
+        if isSettingsShortcut(event) {
+            onOpenSettings?()
+            return true
+        }
+
         if event.keyCode == 53 {
             return onExitOverlayFullscreen?() ?? false
         }
 
-        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-
-        guard modifiers == [.option, .shift], event.charactersIgnoringModifiers?.lowercased() == "f" else {
+        guard fullscreenShortcut.matches(event) else {
             return false
         }
 
         onToggleOverlayFullscreen?()
         return true
+    }
+
+    private func isSettingsShortcut(_ event: NSEvent) -> Bool {
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        return modifiers == [.command, .shift]
+            && event.charactersIgnoringModifiers?.lowercased() == "s"
     }
 }

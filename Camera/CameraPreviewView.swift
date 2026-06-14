@@ -2,6 +2,15 @@ import AVFoundation
 import Combine
 import SwiftUI
 
+struct CameraDeviceOption: Identifiable, Equatable {
+    let uniqueID: String
+    let localizedName: String
+
+    var id: String {
+        uniqueID
+    }
+}
+
 @MainActor
 final class CameraService: ObservableObject, @unchecked Sendable {
     enum State: Equatable {
@@ -13,17 +22,28 @@ final class CameraService: ObservableObject, @unchecked Sendable {
     }
 
     @Published private(set) var state: State = .checkingPermission
+    @Published private(set) var availableVideoDevices: [CameraDeviceOption] = []
 
     var session: AVCaptureSession {
         sessionRunner.session
     }
 
+    private let settingsStore: SettingsStore
     private let permissionService: CameraPermissionService
     private let lifecycleToken = CameraLifecycleToken()
     private let sessionRunner = CameraSessionRunner()
+    private var settingsCancellables = Set<AnyCancellable>()
+    private var isActive = false
 
-    init(permissionService: CameraPermissionService = CameraPermissionService()) {
+    init(
+        settingsStore: SettingsStore,
+        permissionService: CameraPermissionService = CameraPermissionService()
+    ) {
+        self.settingsStore = settingsStore
         self.permissionService = permissionService
+
+        refreshAvailableVideoDevices()
+        observeSettings()
     }
 
     deinit {
@@ -34,6 +54,8 @@ final class CameraService: ObservableObject, @unchecked Sendable {
     func start() {
         assertMainThread()
 
+        isActive = true
+        refreshAvailableVideoDevices()
         let generation = lifecycleToken.advance()
 
         switch permissionService.currentState {
@@ -54,7 +76,35 @@ final class CameraService: ObservableObject, @unchecked Sendable {
 
     func stop() {
         assertMainThread()
+        isActive = false
         invalidateAndStopSession()
+    }
+
+    func refreshAvailableVideoDevices() {
+        availableVideoDevices = CameraDeviceDiscovery.availableVideoDevices()
+    }
+
+    private func observeSettings() {
+        settingsStore.$selectedCameraUniqueID
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] _ in
+                self?.restartForSelectedCameraChange()
+            }
+            .store(in: &settingsCancellables)
+
+    }
+
+    private func restartForSelectedCameraChange() {
+        assertMainThread()
+        refreshAvailableVideoDevices()
+
+        guard isActive else {
+            return
+        }
+
+        invalidateAndStopSession()
+        start()
     }
 
     private func invalidateAndStopSession() {
@@ -80,7 +130,11 @@ final class CameraService: ObservableObject, @unchecked Sendable {
     }
 
     private func startSession(generation: Int) {
-        sessionRunner.start(generation: generation, lifecycleToken: lifecycleToken) { [self] generation, result in
+        sessionRunner.start(
+            selectedDeviceUniqueID: selectedDeviceUniqueID,
+            generation: generation,
+            lifecycleToken: lifecycleToken
+        ) { [self] generation, result in
             Task { @MainActor in
                 guard lifecycleToken.isCurrent(generation) else {
                     return
@@ -89,13 +143,20 @@ final class CameraService: ObservableObject, @unchecked Sendable {
                 switch result {
                 case .ready:
                     state = .ready
+                    refreshAvailableVideoDevices()
                 case .cameraUnavailable:
                     state = .cameraUnavailable
+                    refreshAvailableVideoDevices()
                 case .configurationFailed(let message):
                     state = .configurationFailed(message)
+                    refreshAvailableVideoDevices()
                 }
             }
         }
+    }
+
+    private var selectedDeviceUniqueID: String? {
+        settingsStore.selectedCameraUniqueID.isEmpty ? nil : settingsStore.selectedCameraUniqueID
     }
 
     private func assertMainThread() {
@@ -139,8 +200,10 @@ nonisolated final class CameraSessionRunner: @unchecked Sendable {
 
     private let sessionQueue = DispatchQueue(label: "com.brooksdubois.WindowPane.camera-session")
     private var isConfigured = false
+    private var configuredSelectionID: String?
 
     func start(
+        selectedDeviceUniqueID: String?,
         generation: Int,
         lifecycleToken: CameraLifecycleToken,
         completion: @escaping @Sendable (Int, StartResult) -> Void
@@ -151,7 +214,7 @@ nonisolated final class CameraSessionRunner: @unchecked Sendable {
             }
 
             do {
-                try configureSessionIfNeeded()
+                try configureSessionIfNeeded(selectedDeviceUniqueID: selectedDeviceUniqueID)
             } catch {
                 completion(generation, .configurationFailed(error.localizedDescription))
                 return
@@ -188,45 +251,118 @@ nonisolated final class CameraSessionRunner: @unchecked Sendable {
         }
     }
 
-    private func configureSessionIfNeeded() throws {
-        guard !isConfigured else {
+    private func configureSessionIfNeeded(selectedDeviceUniqueID: String?) throws {
+        guard !isConfigured || configuredSelectionID != selectedDeviceUniqueID else {
             return
         }
 
-        guard let camera = AVCaptureDevice.default(for: .video) else {
+        let camera = resolvedCamera(selectedDeviceUniqueID: selectedDeviceUniqueID)
+
+        guard let camera else {
+            session.beginConfiguration()
+            clearVideoInputs()
+            session.commitConfiguration()
+            isConfigured = false
+            configuredSelectionID = selectedDeviceUniqueID
             return
         }
 
         let input = try AVCaptureDeviceInput(device: camera)
 
         session.beginConfiguration()
-        session.sessionPreset = .high
-
-        if session.canAddInput(input) {
-            session.addInput(input)
-            isConfigured = true
+        defer {
+            session.commitConfiguration()
         }
 
-        session.commitConfiguration()
+        session.sessionPreset = .high
+
+        clearVideoInputs()
+
+        guard session.canAddInput(input) else {
+            isConfigured = false
+            configuredSelectionID = nil
+            return
+        }
+
+        session.addInput(input)
+        isConfigured = true
+        configuredSelectionID = selectedDeviceUniqueID
+    }
+
+    private func resolvedCamera(selectedDeviceUniqueID: String?) -> AVCaptureDevice? {
+        guard let selectedDeviceUniqueID, !selectedDeviceUniqueID.isEmpty else {
+            return AVCaptureDevice.default(for: .video)
+        }
+
+        return CameraDeviceDiscovery.device(uniqueID: selectedDeviceUniqueID)
+    }
+
+    private func clearVideoInputs() {
+        session.inputs
+            .compactMap { $0 as? AVCaptureDeviceInput }
+            .filter { $0.device.hasMediaType(.video) }
+            .forEach { session.removeInput($0) }
+    }
+}
+
+private enum CameraDeviceDiscovery {
+    nonisolated static func availableVideoDevices() -> [CameraDeviceOption] {
+        discoverySession.devices.map {
+            CameraDeviceOption(uniqueID: $0.uniqueID, localizedName: $0.localizedName)
+        }
+    }
+
+    nonisolated static func device(uniqueID: String?) -> AVCaptureDevice? {
+        guard let uniqueID, !uniqueID.isEmpty else {
+            return nil
+        }
+
+        return discoverySession.devices.first { $0.uniqueID == uniqueID }
+    }
+
+    nonisolated private static var discoverySession: AVCaptureDevice.DiscoverySession {
+        AVCaptureDevice.DiscoverySession(
+            deviceTypes: deviceTypes,
+            mediaType: .video,
+            position: .unspecified
+        )
+    }
+
+    nonisolated private static var deviceTypes: [AVCaptureDevice.DeviceType] {
+        var types: [AVCaptureDevice.DeviceType] = [.builtInWideAngleCamera]
+
+        if #available(macOS 14.0, *) {
+            types.append(.external)
+        } else {
+            types.append(.externalUnknown)
+        }
+
+        if #available(macOS 14.0, *) {
+            types.append(.continuityCamera)
+        }
+
+        return types
     }
 }
 
 struct CameraPreviewView: NSViewRepresentable {
     let session: AVCaptureSession
+    let isMirrored: Bool
 
     func makeNSView(context: Context) -> CameraPreviewLayerView {
         let view = CameraPreviewLayerView()
-        view.configure(session: session)
+        view.configure(session: session, isMirrored: isMirrored)
         return view
     }
 
     func updateNSView(_ nsView: CameraPreviewLayerView, context: Context) {
-        nsView.configure(session: session)
+        nsView.configure(session: session, isMirrored: isMirrored)
     }
 }
 
 final class CameraPreviewLayerView: NSView {
     private let previewLayer = AVCaptureVideoPreviewLayer()
+    private var isMirrored = true
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -241,28 +377,30 @@ final class CameraPreviewLayerView: NSView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(session: AVCaptureSession) {
+    func configure(session: AVCaptureSession, isMirrored: Bool) {
+        self.isMirrored = isMirrored
+
         if previewLayer.session !== session {
             previewLayer.session = session
         }
 
         previewLayer.videoGravity = .resizeAspectFill
-        mirrorPreviewIfPossible()
+        updateMirroringIfPossible()
     }
 
     override func layout() {
         super.layout()
 
         previewLayer.frame = bounds
-        mirrorPreviewIfPossible()
+        updateMirroringIfPossible()
     }
 
-    private func mirrorPreviewIfPossible() {
+    private func updateMirroringIfPossible() {
         guard let connection = previewLayer.connection, connection.isVideoMirroringSupported else {
             return
         }
 
         connection.automaticallyAdjustsVideoMirroring = false
-        connection.isVideoMirrored = true
+        connection.isVideoMirrored = isMirrored
     }
 }

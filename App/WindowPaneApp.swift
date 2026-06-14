@@ -6,7 +6,10 @@ struct WindowpaneApp: App {
 
     var body: some Scene {
         Settings {
-            EmptyView()
+            SettingsView(
+                settingsStore: appDelegate.settingsStore,
+                cameraService: appDelegate.cameraService
+            )
         }
     }
 }

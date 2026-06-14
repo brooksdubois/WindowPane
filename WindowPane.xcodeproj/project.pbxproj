@@ -14,6 +14,8 @@
 		11F99DE72FDE07E000ADE55D /* CameraPermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F99DE32FDE063600ADE55D /* CameraPermissionService.swift */; };
 		11F99DE82FDE07E800ADE55D /* CameraPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F99DE22FDE062500ADE55D /* CameraPreviewView.swift */; };
 		11F99DE92FDE07ED00ADE55D /* OverlayRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F99DE42FDE064A00ADE55D /* OverlayRootView.swift */; };
+		11F99DF02FDE090000ADE55D /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F99DED2FDE090000ADE55D /* SettingsStore.swift */; };
+		11F99DF12FDE090000ADE55D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F99DEE2FDE090000ADE55D /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -25,6 +27,8 @@
 		11F99DE22FDE062500ADE55D /* CameraPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreviewView.swift; sourceTree = "<group>"; };
 		11F99DE32FDE063600ADE55D /* CameraPermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPermissionService.swift; sourceTree = "<group>"; };
 		11F99DE42FDE064A00ADE55D /* OverlayRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayRootView.swift; sourceTree = "<group>"; };
+		11F99DED2FDE090000ADE55D /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
+		11F99DEE2FDE090000ADE55D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -54,6 +58,7 @@
 				11F99DDB2FDE058900ADE55D /* Window */,
 				11F99DDC2FDE059300ADE55D /* Camera */,
 				11F99DDA2FDE057200ADE55D /* UI */,
+				11F99DEC2FDE090000ADE55D /* Settings */,
 				11F99DCC2FDE041400ADE55D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -81,6 +86,15 @@
 				11F99DE42FDE064A00ADE55D /* OverlayRootView.swift */,
 			);
 			path = UI;
+			sourceTree = "<group>";
+		};
+		11F99DEC2FDE090000ADE55D /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				11F99DED2FDE090000ADE55D /* SettingsStore.swift */,
+				11F99DEE2FDE090000ADE55D /* SettingsView.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 		11F99DDB2FDE058900ADE55D /* Window */ = {
@@ -178,7 +192,9 @@
 				11F99DE62FDE07D500ADE55D /* OverlayWindow.swift in Sources */,
 				11F99DDF2FDE05D100ADE55D /* AppDelegate.swift in Sources */,
 				11F99DE92FDE07ED00ADE55D /* OverlayRootView.swift in Sources */,
+				11F99DF02FDE090000ADE55D /* SettingsStore.swift in Sources */,
 				11F99DE82FDE07E800ADE55D /* CameraPreviewView.swift in Sources */,
+				11F99DF12FDE090000ADE55D /* SettingsView.swift in Sources */,
 				11F99DE52FDE07AE00ADE55D /* WindowController.swift in Sources */,
 				11F99DE72FDE07E000ADE55D /* CameraPermissionService.swift in Sources */,
 				11F99DCF2FDE041400ADE55D /* WindowPaneApp.swift in Sources */,

@@ -1,7 +1,11 @@
 import AppKit
+import SwiftUI
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    let settingsStore = SettingsStore()
     private var windowController: WindowController?
+    lazy var cameraService = CameraService(settingsStore: settingsStore)
     private var statusItem: NSStatusItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -9,12 +13,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         setupStatusItem()
 
-        let controller = WindowController()
+        let controller = WindowController(
+            settingsStore: settingsStore,
+            cameraService: cameraService,
+            onOpenSettings: { [weak self] in
+                self?.openSettings()
+            }
+        )
         self.windowController = controller
 
         controller.showWindow(nil)
         controller.window?.makeKeyAndOrderFront(nil)
         controller.window?.orderFrontRegardless()
+        
     }
 
     private func setupStatusItem() {
@@ -33,42 +44,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let menu = NSMenu()
 
-        menu.addItem(NSMenuItem(
-            title: "Show WindowPane",
-            action: #selector(showWindowPane),
-            keyEquivalent: ""
-        ))
-
-        menu.addItem(NSMenuItem.separator())
-
-        menu.addItem(NSMenuItem(
+        let settingsItem = NSMenuItem(
             title: "Settings",
             action: #selector(openSettings),
-            keyEquivalent: ","
-        ))
+            keyEquivalent: "S"
+        )
+        settingsItem.keyEquivalentModifierMask = [.command, .shift]
+        settingsItem.target = self
+        menu.addItem(settingsItem)
 
         menu.addItem(NSMenuItem.separator())
 
-        menu.addItem(NSMenuItem(
+        let quitItem = NSMenuItem(
             title: "Quit WindowPane",
             action: #selector(quit),
             keyEquivalent: "q"
-        ))
+        )
+        quitItem.target = self
+        menu.addItem(quitItem)
 
         item.menu = menu
     }
 
-    @objc private func showWindowPane() {
-        windowController?.showWindow(nil)
-        windowController?.window?.makeKeyAndOrderFront(nil)
-        windowController?.window?.orderFrontRegardless()
-    }
-
     @objc private func openSettings() {
-        // Placeholder for now.
-        // Later: open SwiftUI Settings window / popover.
-        windowController?.showWindow(nil)
-        windowController?.window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        EnvironmentValues().openSettings()
     }
 
     @objc private func quit() {

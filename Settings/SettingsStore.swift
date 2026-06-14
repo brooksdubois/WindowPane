@@ -1,0 +1,160 @@
+import AppKit
+import Combine
+
+enum FullscreenKeyboardShortcut: String, CaseIterable, Identifiable {
+    case optionShiftF
+    case commandShiftF
+
+    var id: String {
+        rawValue
+    }
+
+    var displayName: String {
+        switch self {
+        case .optionShiftF:
+            return "Option + Shift + F"
+        case .commandShiftF:
+            return "Command + Shift + F"
+        }
+    }
+
+    func matches(_ event: NSEvent) -> Bool {
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        let character = event.charactersIgnoringModifiers?.lowercased()
+
+        switch self {
+        case .optionShiftF:
+            return modifiers == [.option, .shift] && character == "f"
+        case .commandShiftF:
+            return modifiers == [.command, .shift] && character == "f"
+        }
+    }
+}
+
+@MainActor
+final class SettingsStore: ObservableObject {
+    @Published var showOnAllSpaces: Bool {
+        didSet { defaults.set(showOnAllSpaces, forKey: Keys.showOnAllSpaces) }
+    }
+
+    @Published var rememberWindowPosition: Bool {
+        didSet { defaults.set(rememberWindowPosition, forKey: Keys.rememberWindowPosition) }
+    }
+
+    @Published var rememberWindowSize: Bool {
+        didSet { defaults.set(rememberWindowSize, forKey: Keys.rememberWindowSize) }
+    }
+
+    @Published var roundedCornerRadius: Double {
+        didSet { defaults.set(roundedCornerRadius, forKey: Keys.roundedCornerRadius) }
+    }
+
+    @Published var windowShadow: Bool {
+        didSet { defaults.set(windowShadow, forKey: Keys.windowShadow) }
+    }
+
+    @Published var mirrorCamera: Bool {
+        didSet { defaults.set(mirrorCamera, forKey: Keys.mirrorCamera) }
+    }
+
+    @Published var selectedCameraUniqueID: String {
+        didSet { defaults.set(selectedCameraUniqueID, forKey: Keys.selectedCameraUniqueID) }
+    }
+
+    @Published var fullscreenShortcut: FullscreenKeyboardShortcut {
+        didSet { defaults.set(fullscreenShortcut.rawValue, forKey: Keys.fullscreenShortcut) }
+    }
+
+    @Published var escapeExitsFullscreen: Bool {
+        didSet { defaults.set(escapeExitsFullscreen, forKey: Keys.escapeExitsFullscreen) }
+    }
+
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+
+        showOnAllSpaces = defaults.object(forKey: Keys.showOnAllSpaces) as? Bool ?? true
+        rememberWindowPosition = defaults.object(forKey: Keys.rememberWindowPosition) as? Bool ?? false
+        rememberWindowSize = defaults.object(forKey: Keys.rememberWindowSize) as? Bool ?? false
+        roundedCornerRadius = defaults.object(forKey: Keys.roundedCornerRadius) as? Double ?? 28
+        windowShadow = defaults.object(forKey: Keys.windowShadow) as? Bool ?? true
+        mirrorCamera = defaults.object(forKey: Keys.mirrorCamera) as? Bool ?? true
+        selectedCameraUniqueID = defaults.string(forKey: Keys.selectedCameraUniqueID) ?? ""
+
+        let shortcutRawValue = defaults.string(forKey: Keys.fullscreenShortcut) ?? FullscreenKeyboardShortcut.optionShiftF.rawValue
+        fullscreenShortcut = FullscreenKeyboardShortcut(rawValue: shortcutRawValue) ?? .optionShiftF
+
+        escapeExitsFullscreen = defaults.object(forKey: Keys.escapeExitsFullscreen) as? Bool ?? true
+    }
+
+    func restoredWindowFrame(defaultFrame: NSRect) -> NSRect {
+        var frame = defaultFrame
+
+        if rememberWindowPosition, let origin = savedWindowOrigin {
+            frame.origin = origin
+        }
+
+        if rememberWindowSize, let size = savedWindowSize {
+            frame.size = size
+        }
+
+        return frame
+    }
+
+    func saveWindowFrame(_ frame: NSRect) {
+        if rememberWindowPosition {
+            defaults.set(Double(frame.origin.x), forKey: Keys.windowOriginX)
+            defaults.set(Double(frame.origin.y), forKey: Keys.windowOriginY)
+        }
+
+        if rememberWindowSize {
+            defaults.set(Double(frame.size.width), forKey: Keys.windowWidth)
+            defaults.set(Double(frame.size.height), forKey: Keys.windowHeight)
+        }
+    }
+
+    private var savedWindowOrigin: NSPoint? {
+        guard
+            defaults.object(forKey: Keys.windowOriginX) != nil,
+            defaults.object(forKey: Keys.windowOriginY) != nil
+        else {
+            return nil
+        }
+
+        return NSPoint(
+            x: defaults.double(forKey: Keys.windowOriginX),
+            y: defaults.double(forKey: Keys.windowOriginY)
+        )
+    }
+
+    private var savedWindowSize: NSSize? {
+        guard
+            defaults.object(forKey: Keys.windowWidth) != nil,
+            defaults.object(forKey: Keys.windowHeight) != nil
+        else {
+            return nil
+        }
+
+        return NSSize(
+            width: defaults.double(forKey: Keys.windowWidth),
+            height: defaults.double(forKey: Keys.windowHeight)
+        )
+    }
+}
+
+private enum Keys {
+    static let showOnAllSpaces = "settings.showOnAllSpaces"
+    static let rememberWindowPosition = "settings.rememberWindowPosition"
+    static let rememberWindowSize = "settings.rememberWindowSize"
+    static let roundedCornerRadius = "settings.roundedCornerRadius"
+    static let windowShadow = "settings.windowShadow"
+    static let mirrorCamera = "settings.mirrorCamera"
+    static let selectedCameraUniqueID = "settings.selectedCameraUniqueID"
+    static let fullscreenShortcut = "settings.fullscreenShortcut"
+    static let escapeExitsFullscreen = "settings.escapeExitsFullscreen"
+    static let windowOriginX = "window.origin.x"
+    static let windowOriginY = "window.origin.y"
+    static let windowWidth = "window.size.width"
+    static let windowHeight = "window.size.height"
+}

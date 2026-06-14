@@ -1,37 +1,50 @@
 import AppKit
+import Combine
 import SwiftUI
 
 final class WindowController: NSWindowController {
     private enum Metrics {
+        static let defaultFrame = NSRect(x: 200, y: 200, width: 420, height: 300)
         static let minimumWindowSize = NSSize(width: 260, height: 160)
-        static let cornerRadius: CGFloat = 28
     }
 
     private enum OverlayWindowState {
         static let level: NSWindow.Level = .statusBar
-        static let collectionBehavior: NSWindow.CollectionBehavior = [
-            .canJoinAllSpaces,
-            .stationary,
-            .ignoresCycle
-        ]
+        static let baseCollectionBehavior: NSWindow.CollectionBehavior = [.stationary, .ignoresCycle]
     }
 
+    private let settingsStore: SettingsStore
+    private let cameraService: CameraService
+    private let resizableContentView: ResizableOverlayContentView
+    private let onOpenSettings: () -> Void
+    private var cancellables = Set<AnyCancellable>()
     private var savedNormalFrame: NSRect?
     private var savedNormalWindowLevel: NSWindow.Level?
     private var isOverlayFullscreen = false
 
-    convenience init() {
+    init(
+        settingsStore: SettingsStore,
+        cameraService: CameraService,
+        onOpenSettings: @escaping () -> Void
+    ) {
+        self.settingsStore = settingsStore
+        self.cameraService = cameraService
+        self.onOpenSettings = onOpenSettings
+
+        let initialCornerRadius = CGFloat(settingsStore.roundedCornerRadius)
         let hostingView = NSHostingView(rootView: OverlayRootView(
-            cornerRadius: Metrics.cornerRadius,
+            settingsStore: settingsStore,
+            cameraService: cameraService,
             onToggleFullscreen: {}
         ))
         let contentView = ResizableOverlayContentView(
             contentView: hostingView,
-            cornerRadius: Metrics.cornerRadius
+            cornerRadius: initialCornerRadius
         )
+        self.resizableContentView = contentView
 
         let window = OverlayWindow(
-            contentRect: NSRect(x: 200, y: 200, width: 420, height: 300),
+            contentRect: settingsStore.restoredWindowFrame(defaultFrame: Metrics.defaultFrame),
             styleMask: [
                 .borderless,
                 .resizable
@@ -45,19 +58,20 @@ final class WindowController: NSWindowController {
         window.isReleasedWhenClosed = false
 
         window.level = OverlayWindowState.level
-        window.collectionBehavior = OverlayWindowState.collectionBehavior
+        window.collectionBehavior = Self.collectionBehavior(showOnAllSpaces: settingsStore.showOnAllSpaces)
 
         window.backgroundColor = .clear
         window.isOpaque = false
-        window.hasShadow = true
+        window.hasShadow = settingsStore.windowShadow
 
         window.isMovableByWindowBackground = true
         window.minSize = Metrics.minimumWindowSize
 
-        self.init(window: window)
+        super.init(window: window)
 
         hostingView.rootView = OverlayRootView(
-            cornerRadius: Metrics.cornerRadius,
+            settingsStore: settingsStore,
+            cameraService: cameraService,
             onToggleFullscreen: { [weak self] in
                 self?.toggleOverlayFullscreen()
             }
@@ -66,8 +80,25 @@ final class WindowController: NSWindowController {
             self?.toggleOverlayFullscreen()
         }
         window.onExitOverlayFullscreen = { [weak self] in
-            self?.exitOverlayFullscreen() ?? false
+            guard self?.settingsStore.escapeExitsFullscreen == true else {
+                return false
+            }
+
+            return self?.exitOverlayFullscreen() ?? false
         }
+        window.onOpenSettings = { [weak self] in
+            self?.onOpenSettings()
+        }
+        window.fullscreenShortcut = settingsStore.fullscreenShortcut
+        window.delegate = self
+
+        observeSettings()
+        applyWindowSettings()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 
     override func showWindow(_ sender: Any?) {
@@ -75,6 +106,62 @@ final class WindowController: NSWindowController {
 
         restoreFloatingOverlayBehavior(level: isOverlayFullscreen ? .screenSaver : OverlayWindowState.level)
         window?.orderFrontRegardless()
+    }
+
+    private func observeSettings() {
+        settingsStore.$showOnAllSpaces
+            .sink { [weak self] _ in
+                self?.applyWindowSettings()
+            }
+            .store(in: &cancellables)
+
+        settingsStore.$windowShadow
+            .sink { [weak self] _ in
+                self?.applyWindowSettings()
+            }
+            .store(in: &cancellables)
+
+        settingsStore.$roundedCornerRadius
+            .sink { [weak self] cornerRadius in
+                self?.resizableContentView.cornerRadius = CGFloat(cornerRadius)
+            }
+            .store(in: &cancellables)
+
+        settingsStore.$fullscreenShortcut
+            .sink { [weak self] shortcut in
+                (self?.window as? OverlayWindow)?.fullscreenShortcut = shortcut
+            }
+            .store(in: &cancellables)
+
+        settingsStore.$rememberWindowPosition
+            .dropFirst()
+            .sink { [weak self] _ in
+                self?.saveWindowFrameIfNeeded()
+            }
+            .store(in: &cancellables)
+
+        settingsStore.$rememberWindowSize
+            .dropFirst()
+            .sink { [weak self] _ in
+                self?.saveWindowFrameIfNeeded()
+            }
+            .store(in: &cancellables)
+    }
+
+    private func applyWindowSettings() {
+        guard let window else {
+            return
+        }
+
+        window.collectionBehavior = Self.collectionBehavior(showOnAllSpaces: settingsStore.showOnAllSpaces)
+
+        if !isOverlayFullscreen {
+            window.level = OverlayWindowState.level
+            window.hasShadow = settingsStore.windowShadow
+        }
+
+        window.isMovableByWindowBackground = true
+        window.minSize = Metrics.minimumWindowSize
     }
 
     private func toggleOverlayFullscreen() {
@@ -114,7 +201,7 @@ final class WindowController: NSWindowController {
         isOverlayFullscreen = false
 
         restoreFloatingOverlayBehavior(level: levelToRestore)
-        window.hasShadow = true
+        window.hasShadow = settingsStore.windowShadow
 
         if let frameToRestore {
             window.setFrame(frameToRestore, display: true, animate: false)
@@ -131,7 +218,7 @@ final class WindowController: NSWindowController {
         }
 
         window.level = level
-        window.collectionBehavior = OverlayWindowState.collectionBehavior
+        window.collectionBehavior = Self.collectionBehavior(showOnAllSpaces: settingsStore.showOnAllSpaces)
         window.isMovableByWindowBackground = true
         window.minSize = Metrics.minimumWindowSize
     }
@@ -147,6 +234,38 @@ final class WindowController: NSWindowController {
         }
 
         return screenContainingWindow?.frame ?? NSScreen.main?.frame ?? windowFrame
+    }
+
+    private func saveWindowFrameIfNeeded() {
+        guard let window, !isOverlayFullscreen else {
+            return
+        }
+
+        settingsStore.saveWindowFrame(window.frame)
+    }
+
+    private static func collectionBehavior(showOnAllSpaces: Bool) -> NSWindow.CollectionBehavior {
+        var behavior = OverlayWindowState.baseCollectionBehavior
+
+        if showOnAllSpaces {
+            behavior.insert(.canJoinAllSpaces)
+        }
+
+        return behavior
+    }
+}
+
+extension WindowController: NSWindowDelegate {
+    func windowDidMove(_ notification: Notification) {
+        saveWindowFrameIfNeeded()
+    }
+
+    func windowDidResize(_ notification: Notification) {
+        saveWindowFrameIfNeeded()
+    }
+
+    func windowDidEndLiveResize(_ notification: Notification) {
+        saveWindowFrameIfNeeded()
     }
 }
 
@@ -166,7 +285,11 @@ private final class ResizableOverlayContentView: NSView {
     }
 
     private let contentView: NSView
-    private let cornerRadius: CGFloat
+    var cornerRadius: CGFloat {
+        didSet {
+            needsLayout = true
+        }
+    }
     private let topHandle = ResizeHandleView(edges: [.top])
     private let bottomHandle = ResizeHandleView(edges: [.bottom])
     private let leftHandle = ResizeHandleView(edges: [.left])

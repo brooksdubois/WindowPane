@@ -2,15 +2,18 @@ import AppKit
 import SwiftUI
 
 struct OverlayRootView: View {
-    let cornerRadius: CGFloat
-    let onToggleFullscreen: () -> Void
+    @ObservedObject var settingsStore: SettingsStore
+    @ObservedObject var cameraService: CameraService
 
-    @StateObject private var cameraService = CameraService()
+    let onToggleFullscreen: () -> Void
 
     var body: some View {
         ZStack {
-            CameraContentView(cameraService: cameraService)
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            CameraContentView(
+                cameraService: cameraService,
+                isMirrored: settingsStore.mirrorCamera
+            )
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
 
             WindowPaneStroke(cornerRadius: cornerRadius)
 
@@ -24,10 +27,15 @@ struct OverlayRootView: View {
             cameraService.stop()
         }
     }
+
+    private var cornerRadius: CGFloat {
+        CGFloat(settingsStore.roundedCornerRadius)
+    }
 }
 
 private struct CameraContentView: View {
     @ObservedObject var cameraService: CameraService
+    let isMirrored: Bool
 
     var body: some View {
         ZStack {
@@ -41,7 +49,10 @@ private struct CameraContentView: View {
                     message: "Windowpane is checking camera access."
                 )
             case .ready:
-                CameraPreviewView(session: cameraService.session)
+                CameraPreviewView(
+                    session: cameraService.session,
+                    isMirrored: isMirrored
+                )
             case .permissionDenied:
                 CameraPlaceholderView(
                     systemImage: "video.slash.fill",
