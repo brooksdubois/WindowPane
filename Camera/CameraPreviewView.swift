@@ -241,10 +241,6 @@ final class CameraPreviewLayerView: NSView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    override var mouseDownCanMoveWindow: Bool {
-        true
-    }
-
     func configure(session: AVCaptureSession) {
         if previewLayer.session !== session {
             previewLayer.session = session

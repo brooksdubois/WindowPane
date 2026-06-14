@@ -7,9 +7,24 @@ final class WindowController: NSWindowController {
         static let cornerRadius: CGFloat = 28
     }
 
+    private enum OverlayWindowState {
+        static let level: NSWindow.Level = .statusBar
+        static let collectionBehavior: NSWindow.CollectionBehavior = [
+            .canJoinAllSpaces,
+            .stationary,
+            .ignoresCycle
+        ]
+    }
+
+    private var savedNormalFrame: NSRect?
+    private var savedNormalWindowLevel: NSWindow.Level?
+    private var isOverlayFullscreen = false
+
     convenience init() {
-        let rootView = OverlayRootView(cornerRadius: Metrics.cornerRadius)
-        let hostingView = NSHostingView(rootView: rootView)
+        let hostingView = NSHostingView(rootView: OverlayRootView(
+            cornerRadius: Metrics.cornerRadius,
+            onToggleFullscreen: {}
+        ))
         let contentView = ResizableOverlayContentView(
             contentView: hostingView,
             cornerRadius: Metrics.cornerRadius
@@ -29,12 +44,8 @@ final class WindowController: NSWindowController {
         window.contentView = contentView
         window.isReleasedWhenClosed = false
 
-        window.level = .statusBar
-        window.collectionBehavior = [
-            .canJoinAllSpaces,
-            .stationary,
-            .ignoresCycle
-        ]
+        window.level = OverlayWindowState.level
+        window.collectionBehavior = OverlayWindowState.collectionBehavior
 
         window.backgroundColor = .clear
         window.isOpaque = false
@@ -44,13 +55,108 @@ final class WindowController: NSWindowController {
         window.minSize = Metrics.minimumWindowSize
 
         self.init(window: window)
+
+        hostingView.rootView = OverlayRootView(
+            cornerRadius: Metrics.cornerRadius,
+            onToggleFullscreen: { [weak self] in
+                self?.toggleOverlayFullscreen()
+            }
+        )
+        window.onToggleOverlayFullscreen = { [weak self] in
+            self?.toggleOverlayFullscreen()
+        }
+        window.onExitOverlayFullscreen = { [weak self] in
+            self?.exitOverlayFullscreen() ?? false
+        }
     }
 
     override func showWindow(_ sender: Any?) {
         super.showWindow(sender)
 
-        window?.level = .statusBar
+        restoreFloatingOverlayBehavior(level: isOverlayFullscreen ? .screenSaver : OverlayWindowState.level)
         window?.orderFrontRegardless()
+    }
+
+    private func toggleOverlayFullscreen() {
+        if isOverlayFullscreen {
+            exitOverlayFullscreen()
+        } else {
+            enterOverlayFullscreen()
+        }
+    }
+
+    private func enterOverlayFullscreen() {
+        guard let window, !isOverlayFullscreen else {
+            return
+        }
+
+        savedNormalFrame = window.frame
+        savedNormalWindowLevel = window.level
+        isOverlayFullscreen = true
+
+        restoreFloatingOverlayBehavior(level: .screenSaver)
+        window.hasShadow = false
+        window.setFrame(targetFullscreenFrame(for: window), display: true, animate: false)
+        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
+    }
+
+    @discardableResult
+    private func exitOverlayFullscreen() -> Bool {
+        guard let window, isOverlayFullscreen else {
+            return false
+        }
+
+        let frameToRestore = savedNormalFrame
+        let levelToRestore = savedNormalWindowLevel ?? OverlayWindowState.level
+        savedNormalFrame = nil
+        savedNormalWindowLevel = nil
+        isOverlayFullscreen = false
+
+        restoreFloatingOverlayBehavior(level: levelToRestore)
+        window.hasShadow = true
+
+        if let frameToRestore {
+            window.setFrame(frameToRestore, display: true, animate: false)
+        }
+
+        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
+        return true
+    }
+
+    private func restoreFloatingOverlayBehavior(level: NSWindow.Level = OverlayWindowState.level) {
+        guard let window else {
+            return
+        }
+
+        window.level = level
+        window.collectionBehavior = OverlayWindowState.collectionBehavior
+        window.isMovableByWindowBackground = true
+        window.minSize = Metrics.minimumWindowSize
+    }
+
+    private func targetFullscreenFrame(for window: NSWindow) -> NSRect {
+        if let screen = window.screen {
+            return screen.frame
+        }
+
+        let windowFrame = window.frame
+        let screenContainingWindow = NSScreen.screens.max { first, second in
+            first.frame.intersection(windowFrame).area < second.frame.intersection(windowFrame).area
+        }
+
+        return screenContainingWindow?.frame ?? NSScreen.main?.frame ?? windowFrame
+    }
+}
+
+private extension NSRect {
+    var area: CGFloat {
+        guard !isNull else {
+            return 0
+        }
+
+        return width * height
     }
 }
 

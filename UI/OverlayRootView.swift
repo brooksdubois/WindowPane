@@ -1,16 +1,20 @@
+import AppKit
 import SwiftUI
 
 struct OverlayRootView: View {
     let cornerRadius: CGFloat
+    let onToggleFullscreen: () -> Void
 
     @StateObject private var cameraService = CameraService()
 
     var body: some View {
         ZStack {
             CameraContentView(cameraService: cameraService)
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
 
             WindowPaneStroke(cornerRadius: cornerRadius)
+
+            PaneInteractionOverlay(onDoubleClick: onToggleFullscreen)
         }
         .background(Color.clear)
         .onAppear {
@@ -58,6 +62,51 @@ private struct CameraContentView: View {
                 )
             }
         }
+    }
+}
+
+private struct PaneInteractionOverlay: NSViewRepresentable {
+    let onDoubleClick: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onDoubleClick: onDoubleClick)
+    }
+
+    func makeNSView(context: Context) -> PaneInteractionView {
+        let view = PaneInteractionView()
+        let recognizer = NSClickGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handleDoubleClick(_:))
+        )
+        recognizer.numberOfClicksRequired = 2
+        view.addGestureRecognizer(recognizer)
+        return view
+    }
+
+    func updateNSView(_ nsView: PaneInteractionView, context: Context) {
+        context.coordinator.onDoubleClick = onDoubleClick
+    }
+
+    final class Coordinator: NSObject {
+        var onDoubleClick: () -> Void
+
+        init(onDoubleClick: @escaping () -> Void) {
+            self.onDoubleClick = onDoubleClick
+        }
+
+        @objc func handleDoubleClick(_ recognizer: NSClickGestureRecognizer) {
+            guard recognizer.state == .ended else {
+                return
+            }
+
+            onDoubleClick()
+        }
+    }
+}
+
+private final class PaneInteractionView: NSView {
+    override var mouseDownCanMoveWindow: Bool {
+        true
     }
 }
 

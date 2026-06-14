@@ -53,7 +53,6 @@
 				11F99DD92FDE056900ADE55D /* App */,
 				11F99DDB2FDE058900ADE55D /* Window */,
 				11F99DDC2FDE059300ADE55D /* Camera */,
-				11F99DDD2FDE05A500ADE55D /* Features */,
 				11F99DDA2FDE057200ADE55D /* UI */,
 				11F99DCC2FDE041400ADE55D /* Products */,
 			);
@@ -100,13 +99,6 @@
 				11F99DE22FDE062500ADE55D /* CameraPreviewView.swift */,
 			);
 			path = Camera;
-			sourceTree = "<group>";
-		};
-		11F99DDD2FDE05A500ADE55D /* Features */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Features;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
