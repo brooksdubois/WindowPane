@@ -13,9 +13,13 @@ struct OverlayRootView: View {
                 cameraService: cameraService,
                 isMirrored: settingsStore.mirrorCamera
             )
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .modifier(WindowShapeModifier(
+                settingsStore: settingsStore
+            ))
 
-            WindowPaneStroke(cornerRadius: cornerRadius)
+            WindowPaneStroke(
+                settingsStore: settingsStore
+            )
 
             PaneInteractionOverlay(onDoubleClick: onToggleFullscreen)
         }
@@ -26,6 +30,54 @@ struct OverlayRootView: View {
         .onDisappear {
             cameraService.stop()
         }
+    }
+
+}
+
+private struct WindowShapeModifier: ViewModifier {
+    @ObservedObject var settingsStore: SettingsStore
+
+    func body(content: Content) -> some View {
+        switch settingsStore.windowShape {
+        case .circle:
+            content
+                .clipShape(Circle())
+        case .rounded:
+            content
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        }
+    }
+
+    private var cornerRadius: CGFloat {
+        CGFloat(settingsStore.roundedCornerRadius)
+    }
+}
+
+private struct WindowPaneStroke: View {
+    @ObservedObject var settingsStore: SettingsStore
+
+    var body: some View {
+        ZStack {
+            switch settingsStore.windowShape {
+            case .circle:
+                Circle()
+                    .stroke(Color.white.opacity(0.16), lineWidth: 1)
+
+                Circle()
+                    .stroke(Color.black.opacity(0.35), lineWidth: 2)
+                    .blur(radius: 0.5)
+                    .offset(y: 1)
+            case .rounded:
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(Color.white.opacity(0.16), lineWidth: 1)
+
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(Color.black.opacity(0.35), lineWidth: 2)
+                    .blur(radius: 0.5)
+                    .offset(y: 1)
+            }
+        }
+        .allowsHitTesting(false)
     }
 
     private var cornerRadius: CGFloat {
@@ -118,23 +170,6 @@ private struct PaneInteractionOverlay: NSViewRepresentable {
 private final class PaneInteractionView: NSView {
     override var mouseDownCanMoveWindow: Bool {
         true
-    }
-}
-
-private struct WindowPaneStroke: View {
-    let cornerRadius: CGFloat
-
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .stroke(Color.white.opacity(0.16), lineWidth: 1)
-
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .stroke(Color.black.opacity(0.35), lineWidth: 2)
-                .blur(radius: 0.5)
-                .offset(y: 1)
-        }
-        .allowsHitTesting(false)
     }
 }
 

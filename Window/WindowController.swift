@@ -32,6 +32,7 @@ final class WindowController: NSWindowController {
         self.onOpenSettings = onOpenSettings
 
         let initialCornerRadius = CGFloat(settingsStore.roundedCornerRadius)
+        let initialWindowShape = settingsStore.windowShape
         let hostingView = NSHostingView(rootView: OverlayRootView(
             settingsStore: settingsStore,
             cameraService: cameraService,
@@ -39,7 +40,8 @@ final class WindowController: NSWindowController {
         ))
         let contentView = ResizableOverlayContentView(
             contentView: hostingView,
-            cornerRadius: initialCornerRadius
+            cornerRadius: initialCornerRadius,
+            windowShape: initialWindowShape
         )
         self.resizableContentView = contentView
 
@@ -124,6 +126,12 @@ final class WindowController: NSWindowController {
         settingsStore.$roundedCornerRadius
             .sink { [weak self] cornerRadius in
                 self?.resizableContentView.cornerRadius = CGFloat(cornerRadius)
+            }
+            .store(in: &cancellables)
+
+        settingsStore.$windowShape
+            .sink { [weak self] windowShape in
+                self?.resizableContentView.windowShape = windowShape
             }
             .store(in: &cancellables)
 
@@ -290,6 +298,11 @@ private final class ResizableOverlayContentView: NSView {
             needsLayout = true
         }
     }
+    var windowShape: WindowShape {
+        didSet {
+            needsLayout = true
+        }
+    }
     private let topHandle = ResizeHandleView(edges: [.top])
     private let bottomHandle = ResizeHandleView(edges: [.bottom])
     private let leftHandle = ResizeHandleView(edges: [.left])
@@ -302,6 +315,7 @@ private final class ResizableOverlayContentView: NSView {
     init(contentView: NSView, cornerRadius: CGFloat) {
         self.contentView = contentView
         self.cornerRadius = cornerRadius
+        self.windowShape = .rounded
 
         super.init(frame: .zero)
 
@@ -322,6 +336,36 @@ private final class ResizableOverlayContentView: NSView {
         }
     }
 
+    convenience init(
+        contentView: NSView,
+        cornerRadius: CGFloat,
+        windowShape: WindowShape
+    ) {
+        self.init(contentView: contentView, cornerRadius: cornerRadius)
+        self.windowShape = windowShape
+
+        [
+            topHandle,
+            bottomHandle,
+            leftHandle,
+            rightHandle,
+            topLeftHandle,
+            topRightHandle,
+            bottomLeftHandle,
+            bottomRightHandle
+        ].forEach { handle in
+            handle.resizeCalculator = { [weak self] initialFrame, edges, deltaX, deltaY, minSize in
+                self?.nextFrame(
+                    from: initialFrame,
+                    edges: edges,
+                    deltaX: deltaX,
+                    deltaY: deltaY,
+                    minSize: minSize
+                ) ?? initialFrame
+            }
+        }
+    }
+
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
@@ -336,63 +380,271 @@ private final class ResizableOverlayContentView: NSView {
 
         contentView.frame = bounds
 
-        let width = bounds.width
-        let height = bounds.height
         let edgeThickness = Metrics.edgeThickness
-        let cornerLength = min(cornerRadius, width / 2, height / 2)
-        let horizontalEdgeWidth = max(0, width - (cornerLength * 2))
-        let verticalEdgeHeight = max(0, height - (cornerLength * 2))
+        let geometry = handleGeometry(for: bounds, edgeThickness: edgeThickness)
 
-        topLeftHandle.frame = NSRect(
-            x: 0,
-            y: height - cornerLength,
-            width: cornerLength,
-            height: cornerLength
-        )
-        topRightHandle.frame = NSRect(
-            x: width - cornerLength,
-            y: height - cornerLength,
-            width: cornerLength,
-            height: cornerLength
-        )
-        bottomLeftHandle.frame = NSRect(
-            x: 0,
-            y: 0,
-            width: cornerLength,
-            height: cornerLength
-        )
-        bottomRightHandle.frame = NSRect(
-            x: width - cornerLength,
-            y: 0,
-            width: cornerLength,
-            height: cornerLength
-        )
+        topLeftHandle.frame = geometry.topLeft
+        topRightHandle.frame = geometry.topRight
+        bottomLeftHandle.frame = geometry.bottomLeft
+        bottomRightHandle.frame = geometry.bottomRight
 
-        topHandle.frame = NSRect(
-            x: cornerLength,
-            y: height - edgeThickness,
-            width: horizontalEdgeWidth,
-            height: edgeThickness
-        )
-        bottomHandle.frame = NSRect(
-            x: cornerLength,
-            y: 0,
-            width: horizontalEdgeWidth,
-            height: edgeThickness
-        )
-        leftHandle.frame = NSRect(
-            x: 0,
-            y: cornerLength,
-            width: edgeThickness,
-            height: verticalEdgeHeight
-        )
-        rightHandle.frame = NSRect(
-            x: width - edgeThickness,
-            y: cornerLength,
-            width: edgeThickness,
-            height: verticalEdgeHeight
-        )
+        topHandle.frame = geometry.top
+        bottomHandle.frame = geometry.bottom
+        leftHandle.frame = geometry.left
+        rightHandle.frame = geometry.right
     }
+
+    private func handleGeometry(for bounds: NSRect, edgeThickness: CGFloat) -> HandleGeometry {
+        switch windowShape {
+        case .rounded:
+            let cornerLength = min(cornerRadius, bounds.width / 2, bounds.height / 2)
+            let horizontalEdgeWidth = max(0, bounds.width - (cornerLength * 2))
+            let verticalEdgeHeight = max(0, bounds.height - (cornerLength * 2))
+
+            return HandleGeometry(
+                topLeft: NSRect(
+                    x: 0,
+                    y: bounds.height - cornerLength,
+                    width: cornerLength,
+                    height: cornerLength
+                ),
+                topRight: NSRect(
+                    x: bounds.width - cornerLength,
+                    y: bounds.height - cornerLength,
+                    width: cornerLength,
+                    height: cornerLength
+                ),
+                bottomLeft: NSRect(
+                    x: 0,
+                    y: 0,
+                    width: cornerLength,
+                    height: cornerLength
+                ),
+                bottomRight: NSRect(
+                    x: bounds.width - cornerLength,
+                    y: 0,
+                    width: cornerLength,
+                    height: cornerLength
+                ),
+                top: NSRect(
+                    x: cornerLength,
+                    y: bounds.height - edgeThickness,
+                    width: horizontalEdgeWidth,
+                    height: edgeThickness
+                ),
+                bottom: NSRect(
+                    x: cornerLength,
+                    y: 0,
+                    width: horizontalEdgeWidth,
+                    height: edgeThickness
+                ),
+                left: NSRect(
+                    x: 0,
+                    y: cornerLength,
+                    width: edgeThickness,
+                    height: verticalEdgeHeight
+                ),
+                right: NSRect(
+                    x: bounds.width - edgeThickness,
+                    y: cornerLength,
+                    width: edgeThickness,
+                    height: verticalEdgeHeight
+                )
+            )
+
+        case .circle:
+            let diameter = min(bounds.width, bounds.height)
+            let circleInsetX = max(0, (bounds.width - diameter) / 2)
+            let circleInsetY = max(0, (bounds.height - diameter) / 2)
+            let circleRect = NSRect(
+                x: circleInsetX,
+                y: circleInsetY,
+                width: diameter,
+                height: diameter
+            )
+            let cornerLength = min(40, max(12, diameter / 6))
+            let circleCenter = CGPoint(
+                x: circleRect.midX,
+                y: circleRect.midY
+            )
+            let diagonalOffset = (diameter / 2) / sqrt(2)
+
+            return HandleGeometry(
+                topLeft: NSRect(
+                    x: circleCenter.x - diagonalOffset - (cornerLength / 2),
+                    y: circleCenter.y + diagonalOffset - (cornerLength / 2),
+                    width: cornerLength,
+                    height: cornerLength
+                ),
+                topRight: NSRect(
+                    x: circleCenter.x + diagonalOffset - (cornerLength / 2),
+                    y: circleCenter.y + diagonalOffset - (cornerLength / 2),
+                    width: cornerLength,
+                    height: cornerLength
+                ),
+                bottomLeft: NSRect(
+                    x: circleCenter.x - diagonalOffset - (cornerLength / 2),
+                    y: circleCenter.y - diagonalOffset - (cornerLength / 2),
+                    width: cornerLength,
+                    height: cornerLength
+                ),
+                bottomRight: NSRect(
+                    x: circleCenter.x + diagonalOffset - (cornerLength / 2),
+                    y: circleCenter.y - diagonalOffset - (cornerLength / 2),
+                    width: cornerLength,
+                    height: cornerLength
+                ),
+                top: NSRect(
+                    x: circleRect.minX,
+                    y: circleRect.maxY - edgeThickness,
+                    width: circleRect.width,
+                    height: edgeThickness
+                ),
+                bottom: NSRect(
+                    x: circleRect.minX,
+                    y: circleRect.minY,
+                    width: circleRect.width,
+                    height: edgeThickness
+                ),
+                left: NSRect(
+                    x: circleRect.minX,
+                    y: circleRect.minY,
+                    width: edgeThickness,
+                    height: circleRect.height
+                ),
+                right: NSRect(
+                    x: circleRect.maxX - edgeThickness,
+                    y: circleRect.minY,
+                    width: edgeThickness,
+                    height: circleRect.height
+                )
+            )
+        }
+    }
+
+    private func nextFrame(
+        from initialWindowFrame: NSRect,
+        edges: ResizeEdges,
+        deltaX: CGFloat,
+        deltaY: CGFloat,
+        minSize: NSSize
+    ) -> NSRect {
+        switch windowShape {
+        case .rounded:
+            return roundedNextFrame(
+                from: initialWindowFrame,
+                edges: edges,
+                deltaX: deltaX,
+                deltaY: deltaY,
+                minSize: minSize
+            )
+        case .circle:
+            return circularNextFrame(
+                from: initialWindowFrame,
+                edges: edges,
+                deltaX: deltaX,
+                deltaY: deltaY,
+                minSize: minSize
+            )
+        }
+    }
+
+    private func roundedNextFrame(
+        from initialWindowFrame: NSRect,
+        edges: ResizeEdges,
+        deltaX: CGFloat,
+        deltaY: CGFloat,
+        minSize: NSSize
+    ) -> NSRect {
+        var newFrame = initialWindowFrame
+
+        if edges.contains(.left) {
+            newFrame.origin.x = initialWindowFrame.origin.x + deltaX
+            newFrame.size.width = initialWindowFrame.size.width - deltaX
+
+            if newFrame.size.width < minSize.width {
+                newFrame.size.width = minSize.width
+                newFrame.origin.x = initialWindowFrame.maxX - minSize.width
+            }
+        }
+
+        if edges.contains(.right) {
+            newFrame.size.width = max(minSize.width, initialWindowFrame.size.width + deltaX)
+        }
+
+        if edges.contains(.bottom) {
+            newFrame.origin.y = initialWindowFrame.origin.y + deltaY
+            newFrame.size.height = initialWindowFrame.size.height - deltaY
+
+            if newFrame.size.height < minSize.height {
+                newFrame.size.height = minSize.height
+                newFrame.origin.y = initialWindowFrame.maxY - minSize.height
+            }
+        }
+
+        if edges.contains(.top) {
+            newFrame.size.height = max(minSize.height, initialWindowFrame.size.height + deltaY)
+        }
+
+        return newFrame
+    }
+
+    private func circularNextFrame(
+        from initialWindowFrame: NSRect,
+        edges: ResizeEdges,
+        deltaX: CGFloat,
+        deltaY: CGFloat,
+        minSize: NSSize
+    ) -> NSRect {
+        let minSquareSize = max(minSize.width, minSize.height)
+        let candidateDeltas: [CGFloat] = [
+            edges.contains(.left) ? -deltaX : 0,
+            edges.contains(.right) ? deltaX : 0,
+            edges.contains(.bottom) ? -deltaY : 0,
+            edges.contains(.top) ? deltaY : 0
+        ].filter { $0 != 0 }
+
+        guard let delta = candidateDeltas.max(by: { abs($0) < abs($1) }) else {
+            return initialWindowFrame
+        }
+
+        let currentSide = min(initialWindowFrame.width, initialWindowFrame.height)
+        let requestedSide = max(minSquareSize, currentSide + delta)
+
+        if requestedSide == currentSide {
+            return initialWindowFrame
+        }
+
+        var nextOrigin = initialWindowFrame.origin
+        var nextFrame = NSRect(
+            x: nextOrigin.x,
+            y: nextOrigin.y,
+            width: requestedSide,
+            height: requestedSide
+        )
+
+        if edges.contains(.left) {
+            nextOrigin.x += currentSide - requestedSide
+        }
+
+        if edges.contains(.bottom) {
+            nextOrigin.y += currentSide - requestedSide
+        }
+
+        nextFrame.origin = nextOrigin
+        return nextFrame
+    }
+}
+
+private struct HandleGeometry {
+    let topLeft: NSRect
+    let topRight: NSRect
+    let bottomLeft: NSRect
+    let bottomRight: NSRect
+    let top: NSRect
+    let bottom: NSRect
+    let left: NSRect
+    let right: NSRect
 }
 
 private struct ResizeEdges: OptionSet {
@@ -406,6 +658,15 @@ private struct ResizeEdges: OptionSet {
 
 private final class ResizeHandleView: NSView {
     private let edges: ResizeEdges
+    var resizeCalculator: (NSRect, ResizeEdges, CGFloat, CGFloat, NSSize) -> NSRect = { initialFrame, _edges, _deltaX, _deltaY, minSize in
+        return NSRect(
+            origin: initialFrame.origin,
+            size: NSSize(
+                width: max(minSize.width, initialFrame.size.width),
+                height: max(minSize.height, initialFrame.size.height)
+            )
+        )
+    }
     private var initialWindowFrame: NSRect = .zero
     private var initialMouseLocation: NSPoint = .zero
 
@@ -450,37 +711,9 @@ private final class ResizeHandleView: NSView {
         let deltaX = currentMouseLocation.x - initialMouseLocation.x
         let deltaY = currentMouseLocation.y - initialMouseLocation.y
         let minSize = window.minSize
-        var newFrame = initialWindowFrame
+        let nextFrame = resizeCalculator(initialWindowFrame, edges, deltaX, deltaY, minSize)
 
-        if edges.contains(.left) {
-            newFrame.origin.x = initialWindowFrame.origin.x + deltaX
-            newFrame.size.width = initialWindowFrame.size.width - deltaX
-
-            if newFrame.size.width < minSize.width {
-                newFrame.size.width = minSize.width
-                newFrame.origin.x = initialWindowFrame.maxX - minSize.width
-            }
-        }
-
-        if edges.contains(.right) {
-            newFrame.size.width = max(minSize.width, initialWindowFrame.size.width + deltaX)
-        }
-
-        if edges.contains(.bottom) {
-            newFrame.origin.y = initialWindowFrame.origin.y + deltaY
-            newFrame.size.height = initialWindowFrame.size.height - deltaY
-
-            if newFrame.size.height < minSize.height {
-                newFrame.size.height = minSize.height
-                newFrame.origin.y = initialWindowFrame.maxY - minSize.height
-            }
-        }
-
-        if edges.contains(.top) {
-            newFrame.size.height = max(minSize.height, initialWindowFrame.size.height + deltaY)
-        }
-
-        window.setFrame(newFrame, display: true)
+        window.setFrame(nextFrame, display: true)
     }
 
     private var cursor: NSCursor {

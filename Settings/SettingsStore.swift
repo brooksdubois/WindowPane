@@ -31,6 +31,24 @@ enum FullscreenKeyboardShortcut: String, CaseIterable, Identifiable {
     }
 }
 
+enum WindowShape: String, CaseIterable, Identifiable {
+    case rounded
+    case circle
+
+    var id: String {
+        rawValue
+    }
+
+    var displayName: String {
+        switch self {
+        case .rounded:
+            "Rounded Rectangle"
+        case .circle:
+            "Circle"
+        }
+    }
+}
+
 @MainActor
 final class SettingsStore: ObservableObject {
     @Published var showOnAllSpaces: Bool {
@@ -47,6 +65,10 @@ final class SettingsStore: ObservableObject {
 
     @Published var roundedCornerRadius: Double {
         didSet { defaults.set(roundedCornerRadius, forKey: Keys.roundedCornerRadius) }
+    }
+
+    @Published var windowShape: WindowShape {
+        didSet { defaults.set(windowShape.rawValue, forKey: Keys.windowShape) }
     }
 
     @Published var windowShadow: Bool {
@@ -79,6 +101,9 @@ final class SettingsStore: ObservableObject {
         rememberWindowSize = defaults.object(forKey: Keys.rememberWindowSize) as? Bool ?? false
         roundedCornerRadius = defaults.object(forKey: Keys.roundedCornerRadius) as? Double ?? 28
         windowShadow = defaults.object(forKey: Keys.windowShadow) as? Bool ?? true
+        windowShape = WindowShape(
+            rawValue: defaults.string(forKey: Keys.windowShape) ?? WindowShape.rounded.rawValue
+        ) ?? .rounded
         mirrorCamera = defaults.object(forKey: Keys.mirrorCamera) as? Bool ?? true
         selectedCameraUniqueID = defaults.string(forKey: Keys.selectedCameraUniqueID) ?? ""
 
@@ -148,6 +173,7 @@ private enum Keys {
     static let rememberWindowPosition = "settings.rememberWindowPosition"
     static let rememberWindowSize = "settings.rememberWindowSize"
     static let roundedCornerRadius = "settings.roundedCornerRadius"
+    static let windowShape = "settings.windowShape"
     static let windowShadow = "settings.windowShadow"
     static let mirrorCamera = "settings.mirrorCamera"
     static let selectedCameraUniqueID = "settings.selectedCameraUniqueID"

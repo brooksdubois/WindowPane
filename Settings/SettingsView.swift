@@ -16,6 +16,13 @@ struct SettingsView: View {
             SettingsDivider()
 
             SettingsSection("Window", systemImage: "macwindow") {
+                Picker("Window shape", selection: $settingsStore.windowShape) {
+                    ForEach(WindowShape.allCases) { shape in
+                        Text(shape.displayName).tag(shape)
+                    }
+                }
+                .pickerStyle(.segmented)
+
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("Rounded corner radius")
@@ -25,10 +32,13 @@ struct SettingsView: View {
                     }
 
                     Slider(
-                        value: $settingsStore.roundedCornerRadius,
+                        value: Binding(
+                            get: { settingsStore.roundedCornerRadius },
+                            set: { settingsStore.roundedCornerRadius = $0.rounded() }
+                        ),
                         in: 0...80,
-                        step: 1
                     )
+                    .disabled(settingsStore.windowShape == .circle)
                 }
 
                 Toggle("Window shadow", isOn: $settingsStore.windowShadow)
