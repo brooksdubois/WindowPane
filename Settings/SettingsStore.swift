@@ -71,6 +71,18 @@ final class SettingsStore: ObservableObject {
         didSet { defaults.set(windowShape.rawValue, forKey: Keys.windowShape) }
     }
 
+    @Published var cropPercent: Double {
+        didSet { defaults.set(cropPercent, forKey: Keys.cropPercent) }
+    }
+
+    @Published var cropCenterX: Double {
+        didSet { defaults.set(cropCenterX, forKey: Keys.cropCenterX) }
+    }
+
+    @Published var cropCenterY: Double {
+        didSet { defaults.set(cropCenterY, forKey: Keys.cropCenterY) }
+    }
+
     @Published var windowShadow: Bool {
         didSet { defaults.set(windowShadow, forKey: Keys.windowShadow) }
     }
@@ -104,6 +116,9 @@ final class SettingsStore: ObservableObject {
         windowShape = WindowShape(
             rawValue: defaults.string(forKey: Keys.windowShape) ?? WindowShape.rounded.rawValue
         ) ?? .rounded
+        cropPercent = clamp(25, 100, defaults.object(forKey: Keys.cropPercent) as? Double ?? 100)
+        cropCenterX = clamp(-1, 1, defaults.object(forKey: Keys.cropCenterX) as? Double ?? 0)
+        cropCenterY = clamp(-1, 1, defaults.object(forKey: Keys.cropCenterY) as? Double ?? 0)
         mirrorCamera = defaults.object(forKey: Keys.mirrorCamera) as? Bool ?? true
         selectedCameraUniqueID = defaults.string(forKey: Keys.selectedCameraUniqueID) ?? ""
 
@@ -174,6 +189,9 @@ private enum Keys {
     static let rememberWindowSize = "settings.rememberWindowSize"
     static let roundedCornerRadius = "settings.roundedCornerRadius"
     static let windowShape = "settings.windowShape"
+    static let cropPercent = "settings.cropPercent"
+    static let cropCenterX = "settings.cropCenterX"
+    static let cropCenterY = "settings.cropCenterY"
     static let windowShadow = "settings.windowShadow"
     static let mirrorCamera = "settings.mirrorCamera"
     static let selectedCameraUniqueID = "settings.selectedCameraUniqueID"
@@ -183,4 +201,8 @@ private enum Keys {
     static let windowOriginY = "window.origin.y"
     static let windowWidth = "window.size.width"
     static let windowHeight = "window.size.height"
+}
+
+private func clamp(_ minValue: Double, _ maxValue: Double, _ value: Double) -> Double {
+    min(max(value, minValue), maxValue)
 }

@@ -11,7 +11,10 @@ struct OverlayRootView: View {
         ZStack {
             CameraContentView(
                 cameraService: cameraService,
-                isMirrored: settingsStore.mirrorCamera
+                isMirrored: settingsStore.mirrorCamera,
+                cropPercent: settingsStore.cropPercent,
+                cropCenterX: settingsStore.cropCenterX,
+                cropCenterY: settingsStore.cropCenterY
             )
             .modifier(WindowShapeModifier(
                 settingsStore: settingsStore
@@ -88,6 +91,9 @@ private struct WindowPaneStroke: View {
 private struct CameraContentView: View {
     @ObservedObject var cameraService: CameraService
     let isMirrored: Bool
+    let cropPercent: Double
+    let cropCenterX: Double
+    let cropCenterY: Double
 
     var body: some View {
         ZStack {
@@ -101,10 +107,24 @@ private struct CameraContentView: View {
                     message: "Windowpane is checking camera access."
                 )
             case .ready:
-                CameraPreviewView(
-                    session: cameraService.session,
-                    isMirrored: isMirrored
-                )
+                GeometryReader { geometry in
+                    CameraPreviewView(
+                        session: cameraService.session,
+                        isMirrored: isMirrored
+                    )
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .scaleEffect(
+                        CGSize(
+                            width: CGFloat(cropScale),
+                            height: CGFloat(cropScale)
+                        ),
+                        anchor: .center
+                    )
+                    .offset(
+                        x: CGFloat(safeCropCenterX) * (geometry.size.width * CGFloat(cropScale - 1) / 2),
+                        y: CGFloat(safeCropCenterY) * (geometry.size.height * CGFloat(cropScale - 1) / 2)
+                    )
+                }
             case .permissionDenied:
                 CameraPlaceholderView(
                     systemImage: "video.slash.fill",
@@ -125,6 +145,18 @@ private struct CameraContentView: View {
                 )
             }
         }
+    }
+
+    private var cropScale: Double {
+        max(1, 100 / max(25, cropPercent))
+    }
+
+    private var safeCropCenterX: Double {
+        max(-1, min(1, cropCenterX))
+    }
+
+    private var safeCropCenterY: Double {
+        max(-1, min(1, cropCenterY))
     }
 }
 
