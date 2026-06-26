@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>FacePane uses your camera only to display a local floating preview window. FacePane does not record, transmit, or store camera video.</string>
+	<key>CFBundleDisplayName</key>
+	<string>FacePane</string>
+</dict>
+</plist>

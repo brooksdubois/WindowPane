@@ -7,11 +7,6 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("FacePane")
-                .font(.title2.weight(.semibold))
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.bottom, 6)
-
             SettingsSection("General", systemImage: "slider.horizontal.3") {
                 Toggle("Show on all Spaces", isOn: $settingsStore.showOnAllSpaces)
                 Toggle("Remember last window position", isOn: $settingsStore.rememberWindowPosition)
@@ -365,6 +360,8 @@ private struct SettingsDivider: View {
 }
 
 private struct SettingsWindowConfigurator: NSViewRepresentable {
+    private static let centeredTitleIdentifier = NSUserInterfaceItemIdentifier("FacePaneSettingsCenteredTitle")
+
     func makeNSView(context: Context) -> NSView {
         let view = NSView(frame: .zero)
         configureWhenAttached(view)
@@ -386,9 +383,45 @@ private struct SettingsWindowConfigurator: NSViewRepresentable {
             return
         }
 
-        window.title = "FacePane"
-        window.titleVisibility = .visible
+        window.title = "FacePane Settings"
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = false
+        window.styleMask.remove(.fullSizeContentView)
         window.toolbar = nil
         window.toolbarStyle = .automatic
+
+        configureCenteredTitle(in: window)
+    }
+
+    private func configureCenteredTitle(in window: NSWindow) {
+        guard
+            let closeButton = window.standardWindowButton(.closeButton),
+            let titlebarView = closeButton.superview
+        else {
+            return
+        }
+
+        let existingTitleLabel = titlebarView.subviews.first {
+            $0.identifier == Self.centeredTitleIdentifier
+        } as? NSTextField
+
+        let titleLabel = existingTitleLabel ?? NSTextField(labelWithString: "FacePane Settings")
+        titleLabel.identifier = Self.centeredTitleIdentifier
+        titleLabel.stringValue = "FacePane Settings"
+        titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .semibold)
+        titleLabel.textColor = .labelColor
+        titleLabel.alignment = .center
+        titleLabel.lineBreakMode = .byTruncatingTail
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        if existingTitleLabel == nil {
+            titlebarView.addSubview(titleLabel)
+            NSLayoutConstraint.activate([
+                titleLabel.centerXAnchor.constraint(equalTo: titlebarView.centerXAnchor),
+                titleLabel.centerYAnchor.constraint(equalTo: closeButton.centerYAnchor),
+                titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: titlebarView.leadingAnchor, constant: 120),
+                titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: titlebarView.trailingAnchor, constant: -120)
+            ])
+        }
     }
 }
