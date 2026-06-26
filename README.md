@@ -1,10 +1,10 @@
-# WindowPane
+# FacePane
 
 > A simple, free alternative for displaying your camera feed during screen shares and screen recordings.
 
 ## What It Does
 
-WindowPane gives you a small, floating window with your camera feed on your current screen!
+FacePane gives you a small, floating window with your camera feed on your current screen!
 
 <img width="1470" height="956" alt="Screenshot 2026-06-13 at 9 42 24 PM" src="https://github.com/user-attachments/assets/3e1e0d41-1588-4efd-b52d-8597e125f338" />
 
@@ -41,7 +41,7 @@ This is an XCode project. Install XCode, then you can simply clone the repo and 
 
 3. Set signing for local use. You do not need paid Apple Developer Program for this.
  - Click the project in the left sidebar:
-   - WindowPane project → WindowPane target → Signing & Capabilities
+   - FacePane project → FacePane target → Signing & Capabilities
    - Signing Certificate: Sign to Run Locally
  - Or leave automatic signing enabled with your personal Apple ID team.
 
@@ -55,11 +55,11 @@ This is an XCode project. Install XCode, then you can simply clone the repo and 
 4. Find the built app
   - Product → Show Build Folder in Finder
   - Navigate in Finder to Product -> Build -> Release
-  - You should see "WindowPane.app"
+  - You should see "FacePane.app"
   - Copy this to Applications
 
 5. Copy it to Applications
-  - In Finder, copy: WindowPane.app to: /Applications
+  - In Finder, copy: FacePane.app to: /Applications
 
 Now you can open it like a normal app!
 
