@@ -15,6 +15,7 @@ final class WindowController: NSWindowController {
 
     private let settingsStore: SettingsStore
     private let cameraService: CameraService
+    private let presentationState: OverlayPresentationState
     private let resizableContentView: ResizableOverlayContentView
     private let onOpenSettings: () -> Void
     private var cancellables = Set<AnyCancellable>()
@@ -31,11 +32,15 @@ final class WindowController: NSWindowController {
         self.cameraService = cameraService
         self.onOpenSettings = onOpenSettings
 
+        let presentationState = OverlayPresentationState()
+        self.presentationState = presentationState
+
         let initialCornerRadius = CGFloat(settingsStore.roundedCornerRadius)
         let initialWindowShape = settingsStore.windowShape
         let hostingView = NSHostingView(rootView: OverlayRootView(
             settingsStore: settingsStore,
             cameraService: cameraService,
+            presentationState: presentationState,
             onToggleFullscreen: {}
         ))
         let contentView = ResizableOverlayContentView(
@@ -74,6 +79,7 @@ final class WindowController: NSWindowController {
         hostingView.rootView = OverlayRootView(
             settingsStore: settingsStore,
             cameraService: cameraService,
+            presentationState: presentationState,
             onToggleFullscreen: { [weak self] in
                 self?.toggleOverlayFullscreen()
             }
@@ -106,7 +112,10 @@ final class WindowController: NSWindowController {
     override func showWindow(_ sender: Any?) {
         super.showWindow(sender)
 
-        restoreFloatingOverlayBehavior(level: isOverlayFullscreen ? .screenSaver : OverlayWindowState.level)
+        restoreFloatingOverlayBehavior(
+            level: isOverlayFullscreen ? .screenSaver : OverlayWindowState.level,
+            isMovable: !isOverlayFullscreen
+        )
         window?.orderFrontRegardless()
     }
 
@@ -168,7 +177,7 @@ final class WindowController: NSWindowController {
             window.hasShadow = settingsStore.windowShadow
         }
 
-        window.isMovableByWindowBackground = true
+        window.isMovableByWindowBackground = !isOverlayFullscreen
         window.minSize = Metrics.minimumWindowSize
     }
 
@@ -189,7 +198,9 @@ final class WindowController: NSWindowController {
         savedNormalWindowLevel = window.level
         isOverlayFullscreen = true
 
-        restoreFloatingOverlayBehavior(level: .screenSaver)
+        presentationState.isFullscreen = true
+        resizableContentView.isResizeChromeEnabled = false
+        restoreFloatingOverlayBehavior(level: .screenSaver, isMovable: false)
         window.hasShadow = false
         window.setFrame(targetFullscreenFrame(for: window), display: true, animate: false)
         window.makeKeyAndOrderFront(nil)
@@ -208,6 +219,8 @@ final class WindowController: NSWindowController {
         savedNormalWindowLevel = nil
         isOverlayFullscreen = false
 
+        presentationState.isFullscreen = false
+        resizableContentView.isResizeChromeEnabled = true
         restoreFloatingOverlayBehavior(level: levelToRestore)
         window.hasShadow = settingsStore.windowShadow
 
@@ -220,14 +233,17 @@ final class WindowController: NSWindowController {
         return true
     }
 
-    private func restoreFloatingOverlayBehavior(level: NSWindow.Level = OverlayWindowState.level) {
+    private func restoreFloatingOverlayBehavior(
+        level: NSWindow.Level = OverlayWindowState.level,
+        isMovable: Bool = true
+    ) {
         guard let window else {
             return
         }
 
         window.level = level
         window.collectionBehavior = Self.collectionBehavior(showOnAllSpaces: settingsStore.showOnAllSpaces)
-        window.isMovableByWindowBackground = true
+        window.isMovableByWindowBackground = isMovable
         window.minSize = Metrics.minimumWindowSize
     }
 
@@ -303,6 +319,16 @@ private final class ResizableOverlayContentView: NSView {
             needsLayout = true
         }
     }
+    var isResizeChromeEnabled: Bool = true {
+        didSet {
+            guard oldValue != isResizeChromeEnabled else {
+                return
+            }
+
+            resizeHandles.forEach { $0.isHidden = !isResizeChromeEnabled }
+            needsLayout = true
+        }
+    }
     private let topHandle = ResizeHandleView(edges: [.top])
     private let bottomHandle = ResizeHandleView(edges: [.bottom])
     private let leftHandle = ResizeHandleView(edges: [.left])
@@ -311,6 +337,16 @@ private final class ResizableOverlayContentView: NSView {
     private let topRightHandle = ResizeHandleView(edges: [.top, .right])
     private let bottomLeftHandle = ResizeHandleView(edges: [.bottom, .left])
     private let bottomRightHandle = ResizeHandleView(edges: [.bottom, .right])
+    private lazy var resizeHandles = [
+        topHandle,
+        bottomHandle,
+        leftHandle,
+        rightHandle,
+        topLeftHandle,
+        topRightHandle,
+        bottomLeftHandle,
+        bottomRightHandle
+    ]
 
     init(contentView: NSView, cornerRadius: CGFloat) {
         self.contentView = contentView
@@ -322,16 +358,7 @@ private final class ResizableOverlayContentView: NSView {
         wantsLayer = false
         addSubview(contentView)
 
-        [
-            topHandle,
-            bottomHandle,
-            leftHandle,
-            rightHandle,
-            topLeftHandle,
-            topRightHandle,
-            bottomLeftHandle,
-            bottomRightHandle
-        ].forEach { handle in
+        resizeHandles.forEach { handle in
             addSubview(handle)
         }
     }
@@ -344,16 +371,7 @@ private final class ResizableOverlayContentView: NSView {
         self.init(contentView: contentView, cornerRadius: cornerRadius)
         self.windowShape = windowShape
 
-        [
-            topHandle,
-            bottomHandle,
-            leftHandle,
-            rightHandle,
-            topLeftHandle,
-            topRightHandle,
-            bottomLeftHandle,
-            bottomRightHandle
-        ].forEach { handle in
+        resizeHandles.forEach { handle in
             handle.resizeCalculator = { [weak self] initialFrame, edges, deltaX, deltaY, minSize in
                 self?.nextFrame(
                     from: initialFrame,
@@ -379,6 +397,11 @@ private final class ResizableOverlayContentView: NSView {
         super.layout()
 
         contentView.frame = bounds
+
+        guard isResizeChromeEnabled else {
+            resizeHandles.forEach { $0.frame = .zero }
+            return
+        }
 
         let edgeThickness = Metrics.edgeThickness
         let geometry = handleGeometry(for: bounds, edgeThickness: edgeThickness)

@@ -1,9 +1,15 @@
 import AppKit
+import Combine
 import SwiftUI
+
+final class OverlayPresentationState: ObservableObject {
+    @Published var isFullscreen = false
+}
 
 struct OverlayRootView: View {
     @ObservedObject var settingsStore: SettingsStore
     @ObservedObject var cameraService: CameraService
+    @ObservedObject var presentationState: OverlayPresentationState
 
     let onToggleFullscreen: () -> Void
 
@@ -17,16 +23,23 @@ struct OverlayRootView: View {
                 cropCenterY: settingsStore.cropCenterY
             )
             .modifier(WindowShapeModifier(
-                settingsStore: settingsStore
+                settingsStore: settingsStore,
+                isFullscreen: presentationState.isFullscreen
             ))
 
-            WindowPaneStroke(
-                settingsStore: settingsStore
-            )
+            if !presentationState.isFullscreen {
+                WindowPaneStroke(
+                    settingsStore: settingsStore
+                )
+            }
 
-            PaneInteractionOverlay(onDoubleClick: onToggleFullscreen)
+            PaneInteractionOverlay(
+                isMovableByDragging: !presentationState.isFullscreen,
+                onDoubleClick: onToggleFullscreen
+            )
         }
-        .background(Color.clear)
+        .background(presentationState.isFullscreen ? Color.black : Color.clear)
+        .ignoresSafeArea()
         .onAppear {
             cameraService.start()
         }
@@ -39,15 +52,20 @@ struct OverlayRootView: View {
 
 private struct WindowShapeModifier: ViewModifier {
     @ObservedObject var settingsStore: SettingsStore
+    let isFullscreen: Bool
 
     func body(content: Content) -> some View {
+        guard !isFullscreen else {
+            return AnyView(content)
+        }
+
         switch settingsStore.windowShape {
         case .circle:
-            content
-                .clipShape(Circle())
+            return AnyView(content
+                .clipShape(Circle()))
         case .rounded:
-            content
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            return AnyView(content
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)))
         }
     }
 
@@ -161,6 +179,7 @@ private struct CameraContentView: View {
 }
 
 private struct PaneInteractionOverlay: NSViewRepresentable {
+    let isMovableByDragging: Bool
     let onDoubleClick: () -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -179,6 +198,7 @@ private struct PaneInteractionOverlay: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: PaneInteractionView, context: Context) {
+        nsView.isMovableByDragging = isMovableByDragging
         context.coordinator.onDoubleClick = onDoubleClick
     }
 
@@ -200,8 +220,10 @@ private struct PaneInteractionOverlay: NSViewRepresentable {
 }
 
 private final class PaneInteractionView: NSView {
+    var isMovableByDragging = true
+
     override var mouseDownCanMoveWindow: Bool {
-        true
+        isMovableByDragging
     }
 }
 
