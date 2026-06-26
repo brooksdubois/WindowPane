@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "11F99DCA2FDE041400ADE55D"
-               BuildableName = "WindowPane.app"
-               BlueprintName = "WindowPane"
-               ReferencedContainer = "container:WindowPane.xcodeproj">
+               BuildableName = "FacePane.app"
+               BlueprintName = "FacePane"
+               ReferencedContainer = "container:FacePane.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -46,9 +46,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "11F99DCA2FDE041400ADE55D"
-            BuildableName = "WindowPane.app"
-            BlueprintName = "WindowPane"
-            ReferencedContainer = "container:WindowPane.xcodeproj">
+            BuildableName = "FacePane.app"
+            BlueprintName = "FacePane"
+            ReferencedContainer = "container:FacePane.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -63,9 +63,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "11F99DCA2FDE041400ADE55D"
-            BuildableName = "WindowPane.app"
-            BlueprintName = "WindowPane"
-            ReferencedContainer = "container:WindowPane.xcodeproj">
+            BuildableName = "FacePane.app"
+            BlueprintName = "FacePane"
+            ReferencedContainer = "container:FacePane.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

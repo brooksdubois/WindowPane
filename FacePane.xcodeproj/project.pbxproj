@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		117933C72FEEF8C800CA2933 /* WindowPane.icon in Resources */ = {isa = PBXBuildFile; fileRef = 117933C62FEEF8C800CA2933 /* WindowPane.icon */; };
+		117933C72FEEF8C800CA2933 /* FacePane.icon in Resources */ = {isa = PBXBuildFile; fileRef = 117933C62FEEF8C800CA2933 /* FacePane.icon */; };
 		117933C92FEEFB9B00CA2933 /* PrivacyInfo.xcprivacy in Sources */ = {isa = PBXBuildFile; fileRef = 117933C82FEEFB8F00CA2933 /* PrivacyInfo.xcprivacy */; };
-		11F99DCF2FDE041400ADE55D /* WindowPaneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F99DCE2FDE041400ADE55D /* WindowPaneApp.swift */; };
+		11F99DCF2FDE041400ADE55D /* FacePaneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F99DCE2FDE041400ADE55D /* FacePaneApp.swift */; };
 		11F99DDF2FDE05D100ADE55D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F99DDE2FDE05CC00ADE55D /* AppDelegate.swift */; };
 		11F99DE52FDE07AE00ADE55D /* WindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F99DE02FDE05F400ADE55D /* WindowController.swift */; };
 		11F99DE62FDE07D500ADE55D /* OverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F99DE12FDE060C00ADE55D /* OverlayWindow.swift */; };
@@ -21,10 +21,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		117933C62FEEF8C800CA2933 /* WindowPane.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = WindowPane.icon; sourceTree = "<group>"; };
+		117933C62FEEF8C800CA2933 /* FacePane.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = FacePane.icon; sourceTree = "<group>"; };
 		117933C82FEEFB8F00CA2933 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		11F99DCB2FDE041400ADE55D /* FacePane.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FacePane.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		11F99DCE2FDE041400ADE55D /* WindowPaneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPaneApp.swift; sourceTree = "<group>"; };
+		11F99DCE2FDE041400ADE55D /* FacePaneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FacePaneApp.swift; sourceTree = "<group>"; };
 		11F99DDE2FDE05CC00ADE55D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		11F99DE02FDE05F400ADE55D /* WindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowController.swift; sourceTree = "<group>"; };
 		11F99DE12FDE060C00ADE55D /* OverlayWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayWindow.swift; sourceTree = "<group>"; };
@@ -36,9 +36,9 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		11F99DCD2FDE041400ADE55D /* WindowPane */ = {
+		11F99DCD2FDE041400ADE55D /* FacePane */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = WindowPane;
+			path = FacePane;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -58,14 +58,14 @@
 			isa = PBXGroup;
 			children = (
 				117933C82FEEFB8F00CA2933 /* PrivacyInfo.xcprivacy */,
-				11F99DCD2FDE041400ADE55D /* WindowPane */,
+				11F99DCD2FDE041400ADE55D /* FacePane */,
 				11F99DD92FDE056900ADE55D /* App */,
 				11F99DDB2FDE058900ADE55D /* Window */,
 				11F99DDC2FDE059300ADE55D /* Camera */,
 				11F99DDA2FDE057200ADE55D /* UI */,
 				11F99DEC2FDE090000ADE55D /* Settings */,
 				11F99DCC2FDE041400ADE55D /* Products */,
-				117933C62FEEF8C800CA2933 /* WindowPane.icon */,
+				117933C62FEEF8C800CA2933 /* FacePane.icon */,
 			);
 			sourceTree = "<group>";
 		};
@@ -81,7 +81,7 @@
 			isa = PBXGroup;
 			children = (
 				11F99DDE2FDE05CC00ADE55D /* AppDelegate.swift */,
-				11F99DCE2FDE041400ADE55D /* WindowPaneApp.swift */,
+				11F99DCE2FDE041400ADE55D /* FacePaneApp.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -124,9 +124,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		11F99DCA2FDE041400ADE55D /* WindowPane */ = {
+		11F99DCA2FDE041400ADE55D /* FacePane */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 11F99DD62FDE041500ADE55D /* Build configuration list for PBXNativeTarget "WindowPane" */;
+			buildConfigurationList = 11F99DD62FDE041500ADE55D /* Build configuration list for PBXNativeTarget "FacePane" */;
 			buildPhases = (
 				11F99DC72FDE041400ADE55D /* Sources */,
 				11F99DC82FDE041400ADE55D /* Frameworks */,
@@ -137,9 +137,9 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				11F99DCD2FDE041400ADE55D /* WindowPane */,
+				11F99DCD2FDE041400ADE55D /* FacePane */,
 			);
-			name = WindowPane;
+			name = FacePane;
 			packageProductDependencies = (
 			);
 			productName = WindowPane;
@@ -161,7 +161,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 11F99DC62FDE041400ADE55D /* Build configuration list for PBXProject "WindowPane" */;
+			buildConfigurationList = 11F99DC62FDE041400ADE55D /* Build configuration list for PBXProject "FacePane" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -175,7 +175,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				11F99DCA2FDE041400ADE55D /* WindowPane */,
+				11F99DCA2FDE041400ADE55D /* FacePane */,
 			);
 		};
 /* End PBXProject section */
@@ -185,7 +185,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				117933C72FEEF8C800CA2933 /* WindowPane.icon in Resources */,
+				117933C72FEEF8C800CA2933 /* FacePane.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -205,7 +205,7 @@
 				11F99DF12FDE090000ADE55D /* SettingsView.swift in Sources */,
 				11F99DE52FDE07AE00ADE55D /* WindowController.swift in Sources */,
 				11F99DE72FDE07E000ADE55D /* CameraPermissionService.swift in Sources */,
-				11F99DCF2FDE041400ADE55D /* WindowPaneApp.swift in Sources */,
+				11F99DCF2FDE041400ADE55D /* FacePaneApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -433,7 +433,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		11F99DC62FDE041400ADE55D /* Build configuration list for PBXProject "WindowPane" */ = {
+		11F99DC62FDE041400ADE55D /* Build configuration list for PBXProject "FacePane" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				11F99DD42FDE041500ADE55D /* Debug */,
@@ -442,7 +442,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		11F99DD62FDE041500ADE55D /* Build configuration list for PBXNativeTarget "WindowPane" */ = {
+		11F99DD62FDE041500ADE55D /* Build configuration list for PBXNativeTarget "FacePane" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				11F99DD72FDE041500ADE55D /* Debug */,
