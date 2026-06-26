@@ -1,3 +1,4 @@
+# Local orchestration/runtime state
 .omx/
 .codex/*
 !.codex/agents/
@@ -7,3 +8,72 @@
 .codex/skills/.system/**
 !.codex/prompts/
 !.codex/prompts/**
+
+# Xcode/local build outputs
+DerivedData/
+.xcode-derived/
+build/
+*.xcarchive
+*.ipa
+*.dSYM/
+*.app/
+
+# Environment files and local config
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Apple signing certificates, private keys, and App Store Connect API keys
+*.p12
+*.p8
+AuthKey_*.p8
+AppStoreConnect_API_Key_*.p8
+*.key
+*.pem
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+*_private_key.*
+*private-key*
+*PrivateKey*
+
+# Provisioning profiles and embedded signing assets
+*.mobileprovision
+*.provisionprofile
+embedded.mobileprovision
+embedded.provisionprofile
+
+# Notarization credentials and App Store export options
+*notarization*credential*
+*notary*credential*
+*notarytool*credential*
+notarization-credentials.*
+notarytool-credentials.*
+exportOptions.plist
+exportOptions*.plist
+ExportOptions.plist
+ExportOptions*.plist
+
+# Fastlane secrets/local signing material
+fastlane/.env
+fastlane/.env.*
+!fastlane/.env.example
+!fastlane/.env.*.example
+fastlane/**/*.p12
+fastlane/**/*.p8
+fastlane/**/*.key
+fastlane/**/*.pem
+fastlane/**/*.mobileprovision
+fastlane/**/*.provisionprofile
+fastlane/**/*secret*
+fastlane/**/*Secret*
+fastlane/**/*credential*
+fastlane/**/*Credential*
+fastlane/match-password*
+fastlane/.match-password*
+fastlane/Matchfile.local
+fastlane/Appfile.local
+fastlane/Fastfile.local
+fastlane/Deliverfile.local
